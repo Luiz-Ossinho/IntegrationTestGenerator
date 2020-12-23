@@ -16,10 +16,11 @@ namespace TestGenerator
         }
 
         public List<FileInfo> ReadControllers() {
-            throw new NotImplementedException();
+            var dll = new FileInfo(@"C:\Users\ejesus\workspace\ssc-servicos-cartao\Api.Cartao\bin\Api.Cartao.dll");
+            return new List<FileInfo> {dll};
         }
 
-        internal void WriteTests(List<TestClass> controllersTests)
+        public void WriteTests(List<TestClass> controllersTests)
         {
             throw new NotImplementedException();
         }
