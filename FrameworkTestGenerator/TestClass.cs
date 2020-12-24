@@ -4,13 +4,12 @@ namespace TestGenerator
 {
     public class TestClass
     {
-        public TestClass(string Filename, string Namespace, bool realizaLogin = false)
+        public TestClass(string Filename, string Namespace, string setupNamespace, bool realizaLogin = false)
         {
             this.Filename = Filename;
             this.Definition = $"public class {Filename}";
             this.Namespace = Namespace;
-
-            this.realizaLogin = realizaLogin;
+            AddUsingDirective(setupNamespace);
 
             Constructor =
                 $"\tpublic {Filename}(IntegrationTestFixture fixture)\n" +
@@ -20,19 +19,17 @@ namespace TestGenerator
                 $"\t\t{(realizaLogin ? "_fixture.RealizarLogin();" : "")}\n" +
                 "\t}\n";
         }
-        public bool realizaLogin;
         public string Filename { get; }
         public string Namespace { get; }
         public string Definition { get; }
+        public string Constructor { get; }
         public List<TestMethod> TestMethods { get; } = new List<TestMethod>();
-        public Dictionary<string, string> Fields { get; } =
-        new Dictionary<string, string>
+        public Dictionary<string, string> Fields { get; } = new Dictionary<string, string>
         {
             { "IntegrationTestFixture","_fixture" },
             { "HttpClient","client" }
         };
-        public List<string> UsingDirectives { get; } =
-        new List<string>
+        public List<string> UsingDirectives { get; } = new List<string>
         {
             "System.Net.Http",
             "System.Threading.Tasks",
@@ -40,19 +37,13 @@ namespace TestGenerator
             "Xunit.Priority",
             "Xunit.Categories"
         };
-
-        public List<string> Atributes { get; } =
-        new List<string>
+        public List<string> Atributes { get; } = new List<string>
         {
             "Collection(nameof(IntegrationApiTestFixtureCollection))",
             "TestCaseOrderer(PriorityOrderer.Name, PriorityOrderer.Assembly)"
         };
-
-        public string Constructor { get; }
-
         public void AddTestMethods(IEnumerable<TestMethod> testMethod) => this.TestMethods.AddRange(testMethod);
         public void AddUsingDirective(string usingDirective) => this.UsingDirectives.Add(usingDirective);
-
         public override string ToString()
         {
             string testClass = "";
@@ -60,7 +51,7 @@ namespace TestGenerator
             // Adds any using directives at the top of the file
             string usigns = "";
             foreach (var usingDirective in this.UsingDirectives)
-                usigns += ("using" + usingDirective + ";\n");
+                usigns += ("using " + usingDirective + ";\n");
             testClass += usigns;
 
             testClass += "namespace " + this.Namespace + "\n";
@@ -74,6 +65,7 @@ namespace TestGenerator
             string fields = "";
             foreach (var field in this.Fields)
                 fields += "\tprivate " + field.Key + " " + field.Value + ";\n";
+            testClass += fields;
 
             // Adds the constructor to the test class
             testClass += this.Constructor;

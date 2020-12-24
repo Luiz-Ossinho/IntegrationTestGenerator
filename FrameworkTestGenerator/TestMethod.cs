@@ -14,27 +14,29 @@ namespace TestGenerator
         }
         public string Contract { get; }
         public HttpMethod Method { get; set; }
-        public string Body { get; private set; } = "";
-        public List<string> Asserts { get; } = new List<string> { "Assert.True(response.IsSuccessStatusCode, response.LerRetorno());\n" };
         public string Route { get; set; }
+        public string Body { get; private set; } = "";
         public IDictionary<string, string> Initializations { get; } = new Dictionary<string, string>();
         public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>();
+        public List<string> Asserts { get; } = new List<string>
+        {
+            "Assert.True(response.IsSuccessStatusCode, response.LerRetorno());\n"
+        };
         public void AddHeader(string variable) => this.Headers.Add(variable, variable);
         public void AddInitialization(string key, string value) => this.Initializations.Add(key, value);
         public void AddBody(string variable) => this.Body = variable;
-
         public override string ToString()
         {
             string testBody =
-                $"{this.Contract}\n" +
-                "{\n" +
-                "\t//Arrange\n";
+                $"\t{this.Contract}" + "_Success()" + "\n" +
+                "\t{\n" +
+                "\t\t//Arrange\n";
 
             string arranges = "";
             //Initializes any variables that may need initializing
             foreach (var initialization in this.Initializations)
             {
-                arranges += $"\tvar {initialization.Key} = {initialization.Value};\n";
+                arranges += $"\t\tvar {initialization.Key} = {initialization.Value};\n";
             }
 
             testBody += arranges;
@@ -49,20 +51,21 @@ namespace TestGenerator
             if (this.Method == HttpMethod.Put)
                 httpMethod = "PutAsJsonAsync";
 
-            testBody += "\t//Act\n";
-            string actions = "\tvar response = await client.";
-            actions += httpMethod+$"($\"{this.Route}\"";
+            testBody += "\t\t//Act\n";
+            string actions = "\t\tvar response = await client.";
+            actions += httpMethod + $"($\"{this.Route}\"";
 
             // Adds any headers there may be
-            if (Headers.Any()) {
+            if (Headers.Any())
+            {
                 actions += "\n";
                 var headers = Headers.ToArray();
                 for (int i = 0; i < headers.Length; i++)
                 {
                     if (i == 0)
-                        actions += $"\t\t+ \"?{headers[i].Key}={{{headers[i].Value}}}\n\"";
+                        actions += $"\t\t\t+ \"?{headers[i].Key}={{{headers[i].Value}}}\"\n";
                     else
-                        actions += $"\t\t+ \"&{headers[i].Key}={{{headers[i].Value}}}\n\"";
+                        actions += $"\t\t\t+ \"&{headers[i].Key}={{{headers[i].Value}}}\"\n";
                 }
             }
 
@@ -70,18 +73,18 @@ namespace TestGenerator
             if (!string.IsNullOrEmpty(this.Body))
                 actions += $", {this.Body}";
 
-            actions += ");\n";
+            actions += "\t);\n";
             testBody += actions;
 
-            testBody += "\t//Assert\n";
+            testBody += "\t\t//Assert\n";
             string assertions = "";
 
             foreach (var assertion in Asserts)
-                assertions += "\t"+assertion+"\n";
+                assertions += "\t\t" + assertion + "\n";
 
             testBody += assertions;
 
-            testBody += "}\n";
+            testBody += "\t}\n";
 
             return testBody;
         }

@@ -13,12 +13,20 @@ namespace TestGenerator
 {
     public class TestController
     {
-        public TestController(string TestNamespace)
+        public TestController(string testClassNamespace, string SetupNamespace)
         {
-            this.TestNamespace = TestNamespace;
+            this.TestClassNamespace = testClassNamespace;
+            this.SetupNamespace = SetupNamespace;
         }
-        public string TestNamespace { get; }
-
+        public string TestClassNamespace { get; }
+        public string SetupNamespace { get; }
+        private List<Type> ValidEndpointsAttributes { get; } = new List<Type>
+        {
+            typeof(HttpGetAttribute),
+            typeof(HttpPostAttribute),
+            typeof(HttpPutAttribute),
+            typeof(HttpDeleteAttribute)
+        };
         public List<Type> LoadTypes(List<FileInfo> files)
         {
             var controllerTypes = new List<Type>();
@@ -39,7 +47,12 @@ namespace TestGenerator
             var testClasses = new List<TestClass>();
             foreach (var controller in types)
             {
+                // Incase there is no route prefix, convention dictates it must be an Base Controller
+                // there are other ways to check this (for instance, check it is abstract)
+                if (controller.GetCustomAttribute<RoutePrefixAttribute>()?.Prefix == null)
+                    continue;
                 var controllerTestClass = CreateTestClass(controller);
+                Console.WriteLine(controllerTestClass.ToString());
                 testClasses.Add(controllerTestClass);
             }
 
@@ -48,24 +61,19 @@ namespace TestGenerator
 
         private TestClass CreateTestClass(Type controller)
         {
+            var routePrefix = controller.GetCustomAttribute<RoutePrefixAttribute>()?.Prefix;
+
             var realizaLogin = false;
             if (controller.GetCustomAttribute<AuthorizeAttribute>() != null)
                 realizaLogin = true;
 
-            var testClass = new TestClass(controller.Name + "Tests", this.TestNamespace, realizaLogin);
-
-            var routePrefix = controller.GetCustomAttribute<RoutePrefixAttribute>().Prefix;
+            var testClass = new TestClass(controller.Name + "Tests", this.TestClassNamespace, this.SetupNamespace, realizaLogin);
 
             var testMethods = new List<TestMethod>();
             foreach (var endpoint in GetEndpoints(controller))
-            {
-                var test = GenerateTestMethod(endpoint, ref testClass, routePrefix);
-                Console.WriteLine(test.ToString());
-                testMethods.Add(test);
-            }
+                testMethods.Add(GenerateTestMethod(endpoint, ref testClass, routePrefix));
 
             testClass.AddTestMethods(testMethods);
-            testClass.ToString();
 
             return testClass;
         }
@@ -88,12 +96,13 @@ namespace TestGenerator
             return testMethod;
         }
 
-
         private IEnumerable<MethodInfo> GetEndpoints(Type controller)
-            => controller.GetMethods()
-                    .Where(m => ValidEndpointsAttributes
-                        .Intersect(m.GetCustomAttributes()
-                            .Select(a => a.GetType())).Any());
+        {
+            return controller.GetMethods()
+                               .Where(m => ValidEndpointsAttributes
+                                   .Intersect(m.GetCustomAttributes()
+                                       .Select(a => a.GetType())).Any());
+        }
 
         private void AddParameters(ref TestMethod testMethod, ParameterInfo[] parameters, IEnumerable<string> routeParameters, ref TestClass testClass)
         {
@@ -113,7 +122,7 @@ namespace TestGenerator
                 }
                 else if (IsStringParameter(parameter))
                 {
-                    testMethod.AddInitialization(parameter.Name, "ABC");
+                    testMethod.AddInitialization(parameter.Name, "\"ABC\"");
                     if (!routeParameters.Contains(parameter.Name))
                         testMethod.AddHeader(parameter.Name);
                 }
@@ -144,16 +153,7 @@ namespace TestGenerator
         private IEnumerable<string> GetRouteParameters(string route) => Regex.Matches(route, @"\{(.*?)\}")
                 .OfType<Match>().Select(m => m.Value)
                 .Select(s => s.Substring(1, s.Length - 2));
-
-        private List<Type> ValidEndpointsAttributes { get; } = new List<Type>
-        {
-            typeof(HttpGetAttribute),
-            typeof(HttpPostAttribute),
-            typeof(HttpPutAttribute),
-            typeof(HttpDeleteAttribute)
-        };
-
-        private bool HasRoute(MethodInfo endpoint) => !string.IsNullOrEmpty(endpoint.GetCustomAttribute<RouteAttribute>().Template);
+        private bool HasRoute(MethodInfo endpoint) => !string.IsNullOrEmpty(endpoint.GetCustomAttribute<RouteAttribute>()?.Template);
         private bool IsNumericParameter(ParameterInfo parameter)
         {
             var isNumeric = false;
