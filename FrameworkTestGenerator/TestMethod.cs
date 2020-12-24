@@ -20,7 +20,7 @@ namespace TestGenerator
         public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>();
         public List<string> Asserts { get; } = new List<string>
         {
-            "Assert.True(response.IsSuccessStatusCode, response.LerRetorno());\n"
+            "Assert.True(response.IsSuccessStatusCode, response.LerConteudo());"
         };
         public void AddHeader(string variable) => this.Headers.Add(variable, variable);
         public void AddInitialization(string key, string value) => this.Initializations.Add(key, value);
@@ -76,12 +76,11 @@ namespace TestGenerator
             actions += "\t);\n";
             testBody += actions;
 
+            // Adds any assertitions
             testBody += "\t\t//Assert\n";
             string assertions = "";
-
             foreach (var assertion in Asserts)
                 assertions += "\t\t" + assertion + "\n";
-
             testBody += assertions;
 
             testBody += "\t}\n";

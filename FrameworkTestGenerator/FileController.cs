@@ -24,7 +24,7 @@ namespace TestGenerator
         {
             foreach (var testClass in testClasses)
             {
-                var stream = File.CreateText(this.controllerTestFolderPath + testClass.Filename + ".cs");
+                var stream = File.CreateText(Path.Combine(this.controllerTestFolderPath,(testClass.Filename + ".cs")));
                 await stream.WriteAsync(testClass.ToString());
                 stream.Flush();
                 stream.Close();
