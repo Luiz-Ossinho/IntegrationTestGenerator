@@ -31,6 +31,9 @@ namespace TestGenerator
         };
         public List<string> UsingDirectives { get; } = new List<string>
         {
+            "System",
+            "System.Collections.Generic",
+            "System.Linq",
             "System.Net.Http",
             "System.Threading.Tasks",
             "Xunit",
@@ -43,7 +46,12 @@ namespace TestGenerator
             "TestCaseOrderer(PriorityOrderer.Name, PriorityOrderer.Assembly)"
         };
         public void AddTestMethods(IEnumerable<TestMethod> testMethod) => this.TestMethods.AddRange(testMethod);
-        public void AddUsingDirective(string usingDirective) => this.UsingDirectives.Add(usingDirective);
+        public void AddUsingDirective(string usingDirective)
+        {
+            if (!this.UsingDirectives.Contains(usingDirective))
+                this.UsingDirectives.Add(usingDirective);
+        }
+
         public override string ToString()
         {
             string testClass = "";
@@ -58,7 +66,7 @@ namespace TestGenerator
             testClass += "{\n";
 
             // Adds the class definition
-            testClass += "\t" + this.Definition+"\n";
+            testClass += "\t" + this.Definition + "\n";
             testClass += "\t{\n";
 
             // Adds any fields the test class may need
@@ -72,16 +80,24 @@ namespace TestGenerator
 
             // Adds the test methods to the test class
             string testMethods = "";
-            foreach (var testMethod in this.TestMethods)
+            var aux = new List<string>();
+            for (int i = 0; i < this.TestMethods.Count; i++)
             {
+                // If the same endpoint has two implementations,
+                // This assures there wont be test methods with the same name
+                if (aux.Contains(this.TestMethods[i].Contract))
+                    this.TestMethods[i].Contract += $"{i + 1}";
+
+                aux.Add(this.TestMethods[i].Contract);
+
                 testMethods += "\t[Fact]\n";
-                testMethods += testMethod.ToString();
+                testMethods += $"\t{this.TestMethods[i].Contract}" + "_Success()" + "\n";
+                testMethods += this.TestMethods[i].ToString();
             }
             testClass += testMethods;
 
             testClass += "\t}\n";
             testClass += "}\n";
-
 
             return testClass;
         }

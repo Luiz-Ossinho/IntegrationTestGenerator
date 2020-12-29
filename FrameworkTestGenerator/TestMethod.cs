@@ -12,7 +12,7 @@ namespace TestGenerator
         {
             this.Contract = $"public async Task {endpointName}";
         }
-        public string Contract { get; }
+        public string Contract { get; set; }
         public HttpMethod Method { get; set; }
         public string Route { get; set; }
         public string Body { get; private set; } = "";
@@ -28,7 +28,6 @@ namespace TestGenerator
         public override string ToString()
         {
             string testBody =
-                $"\t{this.Contract}" + "_Success()" + "\n" +
                 "\t{\n" +
                 "\t\t//Arrange\n";
 
@@ -63,15 +62,18 @@ namespace TestGenerator
                 for (int i = 0; i < headers.Length; i++)
                 {
                     if (i == 0)
-                        actions += $"\t\t\t+ \"?{headers[i].Key}={{{headers[i].Value}}}\"\n";
+                        actions += $"\t\t\t+ $\"?{headers[i].Key}={{{headers[i].Value}}}\"\n";
                     else
-                        actions += $"\t\t\t+ \"&{headers[i].Key}={{{headers[i].Value}}}\"\n";
+                        actions += $"\t\t\t+ $\"&{headers[i].Key}={{{headers[i].Value}}}\"\n";
                 }
             }
 
             // Adds the body to the request if there is one
-            if (!string.IsNullOrEmpty(this.Body))
+            if (string.IsNullOrEmpty(this.Body) && (this.Method == HttpMethod.Put || this.Method == HttpMethod.Post))
+                actions += ", new{ }";
+            else if (!string.IsNullOrEmpty(this.Body))
                 actions += $", {this.Body}";
+
 
             actions += "\t);\n";
             testBody += actions;

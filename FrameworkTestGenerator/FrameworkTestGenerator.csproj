@@ -82,6 +82,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\Helpers.cs" />
+    <Compile Include="Extensions\MethodExtensios.cs" />
+    <Compile Include="Extensions\ParameterExtensions.cs" />
     <Compile Include="FileController.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
