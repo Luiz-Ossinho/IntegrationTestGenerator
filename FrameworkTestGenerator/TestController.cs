@@ -79,9 +79,9 @@ namespace TestGenerator
             TestMethod testMethod = new TestMethod(endpoint.Name);
 
             if (endpoint.HasRoute())
-                testMethod.Route = $"{routePrefix}/{endpoint.GetCustomAttribute<RouteAttribute>().Template}";
+                testMethod.Route = $"{routePrefix}/{endpoint.GetCustomAttribute<RouteAttribute>().Template}".Replace("?",string.Empty);
             else
-                testMethod.Route = $"{routePrefix}";
+                testMethod.Route = $"{routePrefix}".Replace("?", string.Empty);
 
             var routeParameters = testMethod.Route.GetRouteParameters();
 
